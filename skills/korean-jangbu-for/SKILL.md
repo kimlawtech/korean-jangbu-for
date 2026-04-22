@@ -1,9 +1,9 @@
 ---
-name: jangbu-for
+name: korean-jangbu-for
 description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업자를 위한 장부 자동 생성 진입점 스킬. 호출 시 5개 하위 스킬(jangbu-for-import·jangbu-for-tag·jangbu-for-tax·jangbu-for-dash·jangbu-for-jongso)을 번호·문자 메뉴로 제시하고, 입력 즉시 해당 스킬 인터뷰로 직행한다. 엑셀·5대 은행 CSV·7대 카드사 명세서 PDF·영수증·세금계산서 지원, macOS Vision/PaddleOCR 로컬 처리, Level 2 민감정보 마스킹.
 ---
 
-# jangbu-for
+# korean-jangbu-for
 
 한국 장부 자동 생성 진입점 스킬.
 

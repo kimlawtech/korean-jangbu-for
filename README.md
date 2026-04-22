@@ -29,7 +29,7 @@
 
 | 스킬 | 호출 | 용도 |
 |------|------|------|
-| `jangbu-for` | 진입점 | 번호 메뉴 라우팅 |
+| `korean-jangbu-for` | 진입점 | 번호 메뉴 라우팅 |
 | `jangbu-for-import` | 직행 | 원본 데이터(엑셀·CSV·이미지·PDF) → 표준 거래내역 |
 | `jangbu-for-tag` | 직행 | 표준 거래내역 → 계정과목 매핑 (룰 우선 + LLM fallback) |
 | `jangbu-for-tax` | 직행 | 세무용 BS·PL (국세청 표준계정) |
@@ -37,7 +37,7 @@
 | `jangbu-for-jongso` | 직행 | 종소세·법인세 신고 전 준비 서류 체크리스트 |
 
 ```
-/jangbu-for      → 1·2·3·4·M·Q·T·X·C·A 번호·문자 메뉴
+/korean-jangbu-for      → 1·2·3·4·M·Q·T·X·C·A 번호·문자 메뉴
 /jangbu-for-import       → 원본 데이터 표준화 인터뷰 (7대 카드사 명세서 포함)
 /jangbu-for-tag        → 계정과목 매핑 인터뷰 (룰 + LLM + 학습)
 /jangbu-for-tax      → BS·PL 생성
@@ -144,7 +144,7 @@ PaddleOCR 로컬 실행 → 룰 기반 구조화 → LLM fallback.
 mkdir -p ~/.claude/skills
 cd ~/.claude/skills
 git clone https://github.com/kimlawtech/korean-jangbu-for.git
-for s in jangbu-for jangbu-for-import jangbu-for-tag jangbu-for-tax jangbu-for-dash jangbu-for-jongso; do
+for s in korean-jangbu-for jangbu-for-import jangbu-for-tag jangbu-for-tax jangbu-for-dash jangbu-for-jongso; do
   ln -sf ~/.claude/skills/korean-jangbu-for/skills/$s ~/.claude/skills/$s
 done
 

@@ -9,7 +9,7 @@ set -euo pipefail
 # 5. Claude Code 스킬 심볼릭 링크
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKILLS=(jangbu-for jangbu-for-import jangbu-for-tag jangbu-for-tax jangbu-for-dash jangbu-for-jongso)
+SKILLS=(korean-jangbu-for jangbu-for-import jangbu-for-tag jangbu-for-tax jangbu-for-dash jangbu-for-jongso)
 
 echo "━━━ korean-jangbu-for 설치 ━━━"
 echo ""
@@ -73,5 +73,5 @@ cat <<EOF
 
   bash $ROOT/scripts/verify.sh
 
-Claude Code에서 /jangbu-for 로 시작.
+Claude Code에서 /korean-jangbu-for 로 시작.
 EOF
