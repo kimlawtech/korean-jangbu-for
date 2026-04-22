@@ -7,6 +7,33 @@ description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업
 
 한국 장부 자동 생성 진입점 스킬.
 
+## 최초 호출 시 — MCP 연결 · 보안 상태 자동 점검
+
+진입점이 처음 실행될 때 다음 두 도구를 먼저 호출해 결과를 인트로에 삽입:
+
+```python
+mcp_health()       # 서버·DB·OCR·자격증명 상태
+security_status()  # 마스킹·토큰DB·감사로그 상태
+```
+
+응답이 실패하면 즉시 **설치 안내**(`scripts/install.sh`·`claude mcp add jangbu-mcp`)로 전환.
+성공하면 아래 인트로의 `[보안 모델]` 블록에 실시간 상태 표시:
+
+```
+[MCP 연결 상태]
+  ✅ jangbu-mcp v0.2.0 정상 동작
+  ✅ OCR 엔진: vision (macOS) / paddleocr
+  ✅ SQLite 초기화 완료 (계정 47·룰 46·거래 N건)
+  ✅ 지원 파일: PNG·JPG·HEIC·HEIF·WEBP·TIFF·BMP·GIF·PDF·XLSX·CSV
+
+[보안 상태]
+  ✅ Level 2 마스킹 활성 (5개 패턴)
+  ✅ tokens.db 권한 0o600
+  ✅ audit.log append-only (누적 N건)
+  ✅ OCR 로컬 실행 · 외부 전송 없음
+  ✅ 자격증명 BYOK (사용자 로컬)
+```
+
 ## 최초 호출 시 출력 (1회성 인트로)
 
 처음 사용 시 (또는 `~/.jangbu/jangbu.db` 미존재) 아래 안내를 먼저 출력.
@@ -69,11 +96,16 @@ description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업
 ```
 무엇을 하시겠습니까?
 
-━ 자동 수집 ━
+━ 시스템 · 자동 수집 ━
+[H] MCP 연결 · 보안 상태 점검 (mcp_health + security_status)
 [S] CODEF API 설정 (CODEF 키 발급·등록, 1회)
     → jangbu-connect
 [F] 홈택스·은행·카드 자동 수집 실행
     codef_fetch_hometax / codef_fetch_bank / codef_fetch_card
+[P] 일괄 서류 준비 (5월·6월 신고 시즌 원클릭)
+    → 홈택스 증명서 + 은행·카드 최근 12개월 + 4대보험 일괄
+[I] 폴더 일괄 가져오기 (ingest_folder)
+    → 영수증·세금계산서·카드명세서·엑셀·CSV 섞여있어도 자동 분류
 
 ━ 단계별 실행 ━
 [1] 원본 데이터 표준화 (엑셀·은행CSV·카드명세서·영수증·세금계산서)
@@ -132,6 +164,65 @@ description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업
    → 다음 단계: /jangbu-tag 로 계정 분류
 ```
 
+**[P] 일괄 서류 준비 워크플로우 (5월·6월 신고용)**
+```
+1. codef_credentials_status — 키 등록 확인
+   미등록이면 → /jangbu-connect 안내 후 종료
+
+2. 사용자 정보 수집:
+   - 신고 주체 (개인사업자·프리랜서·1인 법인)
+   - 귀속 연도 (기본: 직전년도)
+   - 이름·주민번호(13자리)·사업자번호(있으면)
+   - 주 거래 은행 계좌·비번
+   - 주 사용 카드사·ID·비번
+
+3. 홈택스 일괄:
+   - codef_fetch_hometax(income_proof)     # 소득금액증명
+   - codef_fetch_hometax(tax_clearance)    # 납세증명
+   - codef_fetch_hometax(biz_reg_proof)    # 사업자등록증명
+   - codef_fetch_hometax(vat_base_proof)   # 부가세 과세표준증명
+   각 단계마다 카카오 간편인증 필요
+
+4. 금융 일괄 (지난 12개월):
+   - codef_fetch_bank 각 은행별
+   - codef_fetch_card 각 카드사별
+
+5. 결과 요약:
+   ✅ 홈택스 증명 4종
+   ✅ 은행 거래 N건
+   ✅ 카드 이용 M건
+   ⏳ 수동 준비 필요:
+      - 임대차계약서 사본
+      - 환급용 통장 사본
+      - 기부금 영수증 원본
+
+6. 분류 + 리포트 자동 이어서:
+   classify_with_rules(year_start, year_end)
+   export_djournal(year_start, year_end)
+   export_report(pl, fmt=csv)
+   export_report(dashboard, fmt=html)
+
+7. tax_package 디렉토리 생성 → 세무사 전달용 패키지 완성
+```
+
+**[I] 폴더 일괄 가져오기**
+```
+1. 사용자에게 폴더 경로 요청
+   예: ~/Downloads/2025_영수증
+
+2. file_types.scan_folder로 파일 유형 분류 (이미지·PDF·엑셀·CSV)
+
+3. ingest_folder 호출
+   - 이미지 → OCR (영수증/세금계산서 auto) → 거래 적재
+   - PDF → 카드명세서 구조화 → 적재
+   - 엑셀 → parse_manual_xlsx
+   - CSV → parse_bank_csv → 실패 시 parse_card_csv
+
+4. 결과:
+   "이미지 47 / PDF 3 / 엑셀 1 / CSV 2 처리 완료, 313건 적재"
+   실패 건 목록 표시 (사용자 수동 확인 필요)
+```
+
 **[M] 월마감 워크플로우**
 ```
 1. 지난달 기간 확정 (예: 2026-03-01 ~ 2026-03-31)
@@ -182,8 +273,11 @@ description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업
 
 ## 번호/문자 입력 처리
 
+- `H` → `mcp_health` + `security_status` 호출 결과 표시
 - `S` → `jangbu-connect` 스킬 호출 (CODEF 자격증명 설정)
 - `F` → 자동 수집 시나리오 (codef_credentials_status 확인 → 문서 유형 선택 → codef_fetch_*)
+- `P` → 일괄 서류 준비 시나리오 (아래 상세 참조)
+- `I` → `ingest_folder` 호출 (사용자에게 폴더 경로 묻고 처리)
 - `1` → `jangbu-import` 스킬 호출 안내
 - `2` → `jangbu-tag` 스킬 호출 안내
 - `3` → `jangbu-tax` 스킬 호출 안내

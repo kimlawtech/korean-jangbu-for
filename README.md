@@ -37,6 +37,19 @@
 | `jangbu-dash` | 직행 | 경영용 현금흐름·대시보드·카드별 분석 |
 | `jangbu-jongso` | 직행 | 종소세 체크리스트 + 홈택스 다운로드 경로 상세 안내 |
 
+## 지원 파일 포맷
+
+| 유형 | 확장자 |
+|------|--------|
+| 이미지 OCR | PNG · JPG · JPEG · HEIC · HEIF · WEBP · TIFF · TIF · BMP · GIF |
+| PDF | PDF (단·다중 페이지) |
+| 엑셀 | XLSX · XLS · XLSM |
+| CSV | CSV · TSV (한글 헤더 자동 감지) |
+
+HEIC/HEIF(iOS 기본 포맷)는 `pip install pillow-heif` 추가 설치 필요 (install.sh가 자동 처리).
+
+**폴더 일괄 처리**: `/korean-jangbu-for` → `[I]` 선택 → 폴더 경로 입력 → 혼합된 파일들을 자동 분류·처리.
+
 ## 자동 수집 (BYOK — 사용자 본인 CODEF 키)
 
 사용자가 직접 [CODEF developer.codef.io](https://developer.codef.io)에 무료 가입해 받은 Client ID/Secret을 로컬에 저장하고, 본인 계정으로 홈택스·은행·카드사 데이터를 자동 수집합니다.

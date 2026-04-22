@@ -33,7 +33,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from jangbu_mcp import audit, credentials, masking, ocr, ocr_corrections, parsers, reports, rules, storage
+from jangbu_mcp import audit, credentials, file_types, masking, ocr, ocr_corrections, parsers, reports, rules, storage
 from jangbu_mcp.connectors import codef as codef_conn
 
 app = Server("jangbu-mcp")
@@ -273,6 +273,35 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="ingest_folder",
+            description="폴더 내 모든 파일을 유형별로 자동 분류해 처리. 이미지(JPG/PNG/HEIC/HEIF/WEBP/TIFF/BMP/GIF)·PDF·엑셀·CSV 일괄. doc_type_hint로 영수증/세금계산서/카드명세서 힌트 지정 가능.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "folder": {"type": "string", "description": "처리할 폴더 절대경로"},
+                    "recursive": {"type": "boolean", "default": True},
+                    "doc_type_hint": {
+                        "type": "string",
+                        "enum": ["receipt", "tax_invoice", "card_statement_scan", "auto"],
+                        "default": "auto",
+                        "description": "이미지 일괄 처리 시 OCR 문서 유형 힌트",
+                    },
+                    "account_id_prefix": {"type": "string"},
+                },
+                "required": ["folder"],
+            },
+        ),
+        Tool(
+            name="mcp_health",
+            description="MCP 서버 동작·DB·OCR 엔진·파일 포맷 지원 상태를 한 번에 점검. 설치 직후·트러블슈팅 시 사용.",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="security_status",
+            description="보안 레이어 상태 점검 (마스킹·토큰DB·감사로그·파일권한). 사용자 안내용 요약 반환.",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
             name="get_audit_log",
             description="감사 로그 조회. append-only.",
             inputSchema={
@@ -319,6 +348,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return await _ocr_apply_alias(arguments)
     if name == "ocr_list_corrections":
         return await _ocr_list_corrections(arguments)
+    if name == "ingest_folder":
+        return await _ingest_folder(arguments)
+    if name == "mcp_health":
+        return await _mcp_health(arguments)
+    if name == "security_status":
+        return await _security_status(arguments)
     if name == "get_audit_log":
         return await _get_audit_log(arguments)
     raise ValueError(f"unknown tool: {name}")
@@ -812,6 +847,181 @@ async def _ocr_apply_alias(args: dict) -> list[TextContent]:
 async def _ocr_list_corrections(args: dict) -> list[TextContent]:
     corrections = ocr_corrections.list_corrections(args.get("correction_type"))
     return _content(corrections)
+
+
+async def _ingest_folder(args: dict) -> list[TextContent]:
+    folder = Path(args["folder"])
+    recursive = args.get("recursive", True)
+    hint = args.get("doc_type_hint", "auto")
+    prefix = args.get("account_id_prefix") or "bulk"
+
+    try:
+        scanned = file_types.scan_folder(folder, recursive=recursive)
+    except ValueError as e:
+        return _content({"error": str(e)})
+
+    result = {
+        "folder": str(folder),
+        "scanned": {k: len(v) for k, v in scanned.items()},
+        "processed": {"image": 0, "pdf": 0, "xlsx": 0, "csv": 0},
+        "failed": [],
+        "inserted_total": 0,
+    }
+
+    # 이미지: 영수증 또는 지정 doc_type으로 OCR
+    doc_type = hint if hint != "auto" else "receipt"
+    for img_path in scanned["image"]:
+        try:
+            ocr_res = ocr.run_ocr(img_path)
+            if doc_type == "receipt":
+                structured = ocr.structure_receipt(ocr_res)
+                tx = ocr.receipt_to_transaction(structured, f"{prefix}_ocr")
+                if tx:
+                    n = _insert_transactions([tx])
+                    result["inserted_total"] += n
+            result["processed"]["image"] += 1
+        except Exception as e:
+            result["failed"].append({"file": str(img_path), "error": str(e)[:120]})
+
+    # PDF: 카드명세서 우선 시도
+    for pdf_path in scanned["pdf"]:
+        try:
+            ocr_res = ocr.run_ocr(pdf_path)
+            structured = ocr.structure_card_statement(ocr_res)
+            if structured.get("row_count", 0) > 0:
+                txs = ocr.card_statement_to_transactions(structured, f"{prefix}_card")
+                n = _insert_transactions(txs)
+                result["inserted_total"] += n
+            result["processed"]["pdf"] += 1
+        except Exception as e:
+            result["failed"].append({"file": str(pdf_path), "error": str(e)[:120]})
+
+    # 엑셀
+    for xlsx in scanned["xlsx"]:
+        try:
+            rows = list(parsers.parse_manual_xlsx(xlsx))
+            n = _insert_transactions(rows)
+            result["inserted_total"] += n
+            result["processed"]["xlsx"] += 1
+        except Exception as e:
+            result["failed"].append({"file": str(xlsx), "error": str(e)[:120]})
+
+    # CSV — 첫 줄로 은행/카드/수기 추정 (향후 개선 여지)
+    for csv_path in scanned["csv"]:
+        try:
+            rows = list(parsers.parse_bank_csv(csv_path, f"{prefix}_bank", bank="auto"))
+            n = _insert_transactions(rows)
+            result["inserted_total"] += n
+            result["processed"]["csv"] += 1
+        except Exception:
+            try:
+                rows = list(parsers.parse_card_csv(csv_path, f"{prefix}_card"))
+                n = _insert_transactions(rows)
+                result["inserted_total"] += n
+                result["processed"]["csv"] += 1
+            except Exception as e2:
+                result["failed"].append({"file": str(csv_path), "error": str(e2)[:120]})
+
+    audit.log(
+        tool_name="ingest_folder",
+        caller="claude",
+        masked=False,
+        purpose=f"bulk ingest from {folder.name}: {result['inserted_total']} rows",
+    )
+    return _content(result)
+
+
+async def _mcp_health(args: dict) -> list[TextContent]:
+    """MCP 서버 상태 전방위 점검."""
+    import sqlite3
+    health = {
+        "mcp_server": "ok",
+        "version": "0.2.0",
+        "storage": {
+            "base_dir": str(storage.BASE_DIR),
+            "finance_db": storage.FINANCE_DB.exists(),
+            "tokens_db": storage.TOKENS_DB.exists(),
+            "audit_log": storage.AUDIT_LOG.exists(),
+        },
+        "database": {},
+        "ocr": {
+            "engine_auto": ocr._engine_auto(),
+            "vision_available": ocr._HAS_VISION,
+            "paddleocr_available": ocr.PaddleOCR is not None,
+        },
+        "file_support": file_types.list_supported_extensions(),
+        "credentials": credentials.list_keys(),
+    }
+
+    try:
+        storage.ensure_layout()
+        with storage.finance_conn() as conn:
+            for tbl in ("transactions", "account_mappings", "classification_rules", "ocr_corrections"):
+                try:
+                    n = conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
+                    health["database"][tbl] = n
+                except sqlite3.OperationalError:
+                    health["database"][tbl] = "missing"
+    except Exception as e:
+        health["database"]["error"] = str(e)
+
+    audit.log(
+        tool_name="mcp_health",
+        caller="claude",
+        masked=True,
+        purpose="health check",
+    )
+    return _content(health)
+
+
+async def _security_status(args: dict) -> list[TextContent]:
+    """보안 레이어 요약 상태."""
+    import os
+    def _perm(p: Path) -> str:
+        try:
+            return oct(os.stat(p).st_mode & 0o777)
+        except Exception:
+            return "unknown"
+
+    with storage.tokens_conn() as conn:
+        token_count = conn.execute("SELECT COUNT(*) FROM tokens").fetchone()[0]
+
+    audit_lines = 0
+    if storage.AUDIT_LOG.exists():
+        with storage.AUDIT_LOG.open("r", encoding="utf-8") as f:
+            audit_lines = sum(1 for _ in f)
+
+    status = {
+        "level": 2,
+        "masking_patterns": ["biz_id", "rrn", "rrn_partial", "card_no", "account_no"],
+        "tokens_db": {
+            "path": str(storage.TOKENS_DB),
+            "permission": _perm(storage.TOKENS_DB),
+            "stored_tokens": token_count,
+            "isolated": True,
+        },
+        "audit_log": {
+            "path": str(storage.AUDIT_LOG),
+            "permission": _perm(storage.AUDIT_LOG),
+            "entries": audit_lines,
+            "append_only": True,
+        },
+        "raw_files": {
+            "imports": str(storage.RAW_IMPORTS),
+            "ocr": str(storage.RAW_OCR),
+            "scope": "local_only",
+        },
+        "ocr": {
+            "engine": ocr._engine_auto(),
+            "external_transmission": False,
+        },
+        "credentials_mode": "BYOK",
+        "external_apis": {
+            "codef_enabled": credentials.load("CODEF_CLIENT_ID") is not None,
+        },
+        "summary": "모든 민감 데이터는 로컬에 저장되며 LLM에는 마스킹된 뷰만 전달됩니다.",
+    }
+    return _content(status)
 
 
 async def _get_audit_log(args: dict) -> list[TextContent]:

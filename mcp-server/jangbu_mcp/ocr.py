@@ -155,7 +155,16 @@ def run_ocr(file_path: Path, engine: str | None = None) -> OcrResult:
             images.append(str(tmp))
             temp_files.append(tmp)
     else:
-        images = [str(file_path)]
+        # 이미지 파일: 다양한 포맷을 PNG로 정규화 (HEIC/HEIF/WEBP/TIFF/BMP/GIF)
+        from jangbu_mcp import file_types
+        kind = file_types.detect_kind(file_path)
+        if kind == "image":
+            normalized = file_types.normalize_to_png(file_path)
+            images = [str(normalized)]
+            if normalized != file_path:
+                temp_files.append(normalized)
+        else:
+            images = [str(file_path)]
 
     result = OcrResult(source_path=str(file_path))
     # 페이지별 y 오프셋 — 여러 페이지 PDF에서 페이지 경계 행들이 섞이지 않도록

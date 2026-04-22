@@ -48,6 +48,10 @@ else
     pip install --quiet -e ".[paddle]"
 fi
 
+# HEIC/HEIF 지원 (iOS 사진 포맷)
+echo "  HEIC/HEIF 지원 설치"
+pip install --quiet -e ".[heif]" || echo "  ⚠ pillow-heif 설치 실패 — HEIC 지원 없이 진행"
+
 # 4. SQLite + 시드
 echo "[4/5] SQLite 초기화 + 시드 주입"
 cd "$ROOT"
