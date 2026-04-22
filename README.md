@@ -30,19 +30,19 @@
 | 스킬 | 호출 | 용도 |
 |------|------|------|
 | `korean-jangbu-for` | 진입점 | 번호 메뉴 라우팅 |
-| `jangbu-for-import` | 직행 | 원본 데이터(엑셀·CSV·이미지·PDF) → 표준 거래내역 |
-| `jangbu-for-tag` | 직행 | 표준 거래내역 → 계정과목 매핑 (룰 우선 + LLM fallback) |
-| `jangbu-for-tax` | 직행 | 세무용 BS·PL (국세청 표준계정) |
-| `jangbu-for-dash` | 직행 | 경영용 현금흐름·비용구조·월별 손익 |
-| `jangbu-for-jongso` | 직행 | 종소세·법인세 신고 전 준비 서류 체크리스트 |
+| `jangbu-import` | 직행 | 원본 데이터(엑셀·CSV·이미지·PDF) → 표준 거래내역 |
+| `jangbu-tag` | 직행 | 표준 거래내역 → 계정과목 매핑 (룰 우선 + LLM fallback) |
+| `jangbu-tax` | 직행 | 세무용 BS·PL (국세청 표준계정) |
+| `jangbu-dash` | 직행 | 경영용 현금흐름·비용구조·월별 손익 |
+| `jangbu-jongso` | 직행 | 종소세·법인세 신고 전 준비 서류 체크리스트 |
 
 ```
 /korean-jangbu-for      → 1·2·3·4·M·Q·T·X·C·A 번호·문자 메뉴
-/jangbu-for-import       → 원본 데이터 표준화 인터뷰 (7대 카드사 명세서 포함)
-/jangbu-for-tag        → 계정과목 매핑 인터뷰 (룰 + LLM + 학습)
-/jangbu-for-tax      → BS·PL 생성
-/jangbu-for-dash     → 경영 리포트 + 카드별 분석 + 대시보드
-/jangbu-for-jongso   → 종소세 준비 체크리스트 + 자동 생성 서류
+/jangbu-import       → 원본 데이터 표준화 인터뷰 (7대 카드사 명세서 포함)
+/jangbu-tag        → 계정과목 매핑 인터뷰 (룰 + LLM + 학습)
+/jangbu-tax      → BS·PL 생성
+/jangbu-dash     → 경영 리포트 + 카드별 분석 + 대시보드
+/jangbu-jongso   → 종소세 준비 체크리스트 + 자동 생성 서류
 ```
 
 ## 카드사 지원 현황
@@ -75,14 +75,14 @@
         ↓
   표준 거래내역 (13개 필드, SQLite)
         ↓
-  [jangbu-for-tag]
+  [jangbu-tag]
     ├─ 룰 기반 (거래처 사전 + MCC + 정규식) → 80%+
     └─ LLM fallback (마스킹된 데이터만) → 나머지
         ↓
   분류 완료 거래내역
         ↓
-  ├─ [jangbu-for-tax]  → BS·PL (국세청 표준계정 매핑)
-  └─ [jangbu-for-dash] → 현금흐름·cash burn·월별 손익
+  ├─ [jangbu-tax]  → BS·PL (국세청 표준계정 매핑)
+  └─ [jangbu-dash] → 현금흐름·cash burn·월별 손익
 ```
 
 ## 표준 거래내역 스키마
@@ -137,34 +137,59 @@ PaddleOCR 로컬 실행 → 룰 기반 구조화 → LLM fallback.
    - `bank_statement_scan`: 거래일·적요·금액·잔액
 3. **LLM fallback** — 파서 실패 시 마스킹된 텍스트만 전달해 구조화
 
-## 설치
+## 설치 (3분)
+
+### 1. 한 줄 설치
 
 ```bash
-# 스킬 등록
-mkdir -p ~/.claude/skills
-cd ~/.claude/skills
-git clone https://github.com/kimlawtech/korean-jangbu-for.git
-for s in korean-jangbu-for jangbu-for-import jangbu-for-tag jangbu-for-tax jangbu-for-dash jangbu-for-jongso; do
-  ln -sf ~/.claude/skills/korean-jangbu-for/skills/$s ~/.claude/skills/$s
-done
-
-# MCP 서버 설치
-cd ~/.claude/skills/korean-jangbu-for/mcp-server
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-
-# Claude Code MCP 등록
-claude mcp add jangbu-mcp -- ~/.claude/skills/korean-jangbu-for/mcp-server/.venv/bin/python -m jangbu_mcp
+mkdir -p ~/.claude/skills && cd ~/.claude/skills && \
+  git clone https://github.com/kimlawtech/korean-jangbu-for.git && \
+  bash korean-jangbu-for/scripts/install.sh
 ```
 
-## 의존성
+자동으로:
+- poppler 확인·설치 (`brew install poppler`)
+- Python 가상환경 + 의존성 설치
+- macOS면 Vision 프레임워크 / Linux면 PaddleOCR 자동 선택
+- SQLite 초기화 + 시드 주입 (계정 47개 + 룰 46개)
+- 6개 스킬 심볼릭 링크 생성
 
-- Python 3.11+
-- `paddlepaddle`, `paddleocr` (OCR)
-- `pdf2image`, `pillow` (PDF → 이미지)
-- `pandas`, `openpyxl` (엑셀·CSV 파싱)
-- `mcp` (MCP SDK)
+### 2. MCP 서버 등록
+
+```bash
+claude mcp add jangbu-mcp -- \
+  ~/.claude/skills/korean-jangbu-for/mcp-server/.venv/bin/python -m jangbu_mcp
+```
+
+### 3. 설치 검증 (선택)
+
+```bash
+bash ~/.claude/skills/korean-jangbu-for/scripts/verify.sh
+```
+
+### 4. Claude Code 재시작 후 사용
+
+```
+/korean-jangbu-for
+```
+
+메뉴가 뜨면 성공.
+
+### 요구사항
+
+- **macOS** (Vision OCR 추가 다운로드 없음) 또는 **Linux** (PaddleOCR ~500MB)
+- **Python 3.11+**
+- **Homebrew** (poppler 자동 설치용)
+- **Claude Code** 설치됨
+
+### 문제 해결
+
+| 증상 | 해결 |
+|------|------|
+| `brew` 없음 | `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"` |
+| Python 3.13에서 PaddleOCR 실패 | 무시 가능 — macOS는 Vision 사용 (install.sh 자동 처리) |
+| `jangbu-mcp` 도구 안 보임 | Claude Code 완전 재시작 후 `claude mcp list` 확인 |
+| 직접 MCP 서버 실행 테스트 | `~/.claude/skills/korean-jangbu-for/mcp-server/.venv/bin/python -m jangbu_mcp` |
 
 ## 대상 사용자
 

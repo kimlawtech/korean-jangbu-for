@@ -1,9 +1,9 @@
 ---
-name: jangbu-for-tax
+name: jangbu-tax
 description: 세무용 재무제표(재무상태표·손익계산서) 자동 생성 스킬. 국세청 표준계정과목 매핑, 일반기업회계기준(K-GAAP) 간소화 버전. 분류 완료된 거래내역을 기간 지정해 BS·PL로 집계하고 JSON·CSV 파일로 출력.
 ---
 
-# jangbu-for-tax
+# jangbu-tax
 
 세무용 재무제표 생성 스킬.
 
@@ -54,7 +54,7 @@ description: 세무용 재무제표(재무상태표·손익계산서) 자동 생
   리포트에 반영되지 않습니다.
   
   [1] 그대로 진행
-  [2] 먼저 jangbu-for-tag로 분류
+  [2] 먼저 jangbu-tag로 분류
   ```
 
 ### Step 4. 리포트 생성

@@ -1,9 +1,9 @@
 ---
-name: jangbu-for-jongso
+name: jangbu-jongso
 description: 한국 종합소득세(5월) 신고 준비를 위한 서류 체크리스트 자동 생성 스킬. 개인사업자(일반·간이·면세)·프리랜서·1인 법인 대표 유형별로 필요 서류 목록을 제공하고, korean-jangbu-for에서 이미 자동 생성 가능한 항목을 표시한다. 2026년 5월 신고 기준.
 ---
 
-# jangbu-for-jongso
+# jangbu-jongso
 
 종합소득세·법인세 신고 전 준비 서류 체크리스트.
 
@@ -163,7 +163,7 @@ export_report(report_type="bs", as_of="2025-12-31", fmt="csv")
 list_transactions(unclassified_only=True)
 ```
 
-미분류 건이 있으면 먼저 `jangbu-for-tag`로 분류 완료 권장.
+미분류 건이 있으면 먼저 `jangbu-tag`로 분류 완료 권장.
 
 ### Step 5. 세무사 전달 패키지 생성 (선택)
 

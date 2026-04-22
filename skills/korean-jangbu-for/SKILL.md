@@ -1,6 +1,6 @@
 ---
 name: korean-jangbu-for
-description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업자를 위한 장부 자동 생성 진입점 스킬. 호출 시 5개 하위 스킬(jangbu-for-import·jangbu-for-tag·jangbu-for-tax·jangbu-for-dash·jangbu-for-jongso)을 번호·문자 메뉴로 제시하고, 입력 즉시 해당 스킬 인터뷰로 직행한다. 엑셀·5대 은행 CSV·7대 카드사 명세서 PDF·영수증·세금계산서 지원, macOS Vision/PaddleOCR 로컬 처리, Level 2 민감정보 마스킹.
+description: 한국 스타트업·1인 법인 대표·프리랜서·개인사업자를 위한 장부 자동 생성 진입점 스킬. 호출 시 5개 하위 스킬(jangbu-import·jangbu-tag·jangbu-tax·jangbu-dash·jangbu-jongso)을 번호·문자 메뉴로 제시하고, 입력 즉시 해당 스킬 인터뷰로 직행한다. 엑셀·5대 은행 CSV·7대 카드사 명세서 PDF·영수증·세금계산서 지원, macOS Vision/PaddleOCR 로컬 처리, Level 2 민감정보 마스킹.
 ---
 
 # korean-jangbu-for
@@ -54,20 +54,20 @@ Level 2 보안 모델을 적용했습니다.
 
 ━ 단계별 실행 ━
 [1] 원본 데이터 표준화 (엑셀·은행CSV·카드명세서·영수증·세금계산서)
-    → jangbu-for-import
+    → jangbu-import
 [2] 계정과목 매핑 (룰 분류 + 학습 + 사용자 확인)
-    → jangbu-for-tag
+    → jangbu-tag
 [3] 세무용 재무제표 생성 (재무상태표·손익계산서)
-    → jangbu-for-tax
+    → jangbu-tax
 [4] 경영 리포트 생성 (월별 손익·현금흐름·cash burn·카드별 분석)
-    → jangbu-for-dash
+    → jangbu-dash
 
 ━ 원클릭 시나리오 ━
 [M] 월마감 (지난달 데이터 정리 → 분류 → PL·현금흐름 → HTML 대시보드)
 [Q] 분기마감 (분기 데이터 정리 → 분류 → BS·PL·분기 대시보드)
 [T] 세무사 전달용 (연간 분개 CSV + PL CSV 생성, 더존 호환)
 [X] 종소세 준비 (체크리스트 + 자동 생성 서류 묶음)
-    → jangbu-for-jongso
+    → jangbu-jongso
 [C] 카드별 사용 분석 (여러 장 카드 이용액·계정 분포·월별 추이)
 [A] 전체 파이프라인 순차 실행 (1 → 2 → 3 → 4)
 
@@ -79,7 +79,7 @@ Level 2 보안 모델을 적용했습니다.
 **[M] 월마감 워크플로우**
 ```
 1. 지난달 기간 확정 (예: 2026-03-01 ~ 2026-03-31)
-2. jangbu-for-import 실행 안내 — 사용자에게 파일 경로 요청
+2. jangbu-import 실행 안내 — 사용자에게 파일 경로 요청
 3. classify_with_rules(start_date, end_date) — 룰 자동 분류
 4. 미분류 건 LLM fallback (마스킹 뷰) → 사용자 확인 루프
 5. export_report(pl) + export_report(cash_flow)
@@ -107,7 +107,7 @@ Level 2 보안 모델을 적용했습니다.
 
 **[X] 종소세 준비 시나리오**
 ```
-1. jangbu-for-jongso 스킬로 라우팅
+1. jangbu-jongso 스킬로 라우팅
 2. 신고 주체 확인 (개인사업자·프리랜서·1인 법인·겸업)
 3. 귀속 연도 확인 (기본 직전년도)
 4. 유형별 체크리스트 + 자동 생성 가능 항목 표시
@@ -126,14 +126,14 @@ Level 2 보안 모델을 적용했습니다.
 
 ## 번호/문자 입력 처리
 
-- `1` → `jangbu-for-import` 스킬 호출 안내
-- `2` → `jangbu-for-tag` 스킬 호출 안내
-- `3` → `jangbu-for-tax` 스킬 호출 안내
-- `4` → `jangbu-for-dash` 스킬 호출 안내
+- `1` → `jangbu-import` 스킬 호출 안내
+- `2` → `jangbu-tag` 스킬 호출 안내
+- `3` → `jangbu-tax` 스킬 호출 안내
+- `4` → `jangbu-dash` 스킬 호출 안내
 - `M` → 월마감 시나리오 실행
 - `Q` → 분기마감 시나리오 실행
 - `T` → 세무사 전달 CSV 생성 (export_djournal + export_report csv)
-- `X` → `jangbu-for-jongso` 스킬 호출
+- `X` → `jangbu-jongso` 스킬 호출
 - `C` → `export_report(card_analysis)` 실행
 - `A` → 순서대로 호출: import → tag → tax → dash
 
