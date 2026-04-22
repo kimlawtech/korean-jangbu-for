@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+dist/
+build/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 사용자 데이터 (절대 커밋 금지)
+~/.jangbu/
+.jangbu/
+~/.finance-skill/
+.finance-skill/
+*.db
+*.db-journal
+audit.log
+reports/
+
+# 테스트용 임시 홈 디렉토리
+/tmp/finance-test-home/
+/tmp/jangbu-test-home/
+
+# OCR 임시 파일
+.*_p[0-9]*.png
+.*_p[0-9]*.jpg
+
+# 민감 파일
+raw/imports/
+raw/ocr/
+tokens.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# 환경변수
+.env
+.env.local

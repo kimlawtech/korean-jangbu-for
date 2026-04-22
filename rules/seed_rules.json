@@ -1,0 +1,67 @@
+[
+  {"pattern_type": "counterparty_regex", "pattern": "(SKT|SK텔레콤|KT|LG ?U\\+|LGU\\+|LG유플러스|알뜰폰)", "internal_account": "통신비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(KT올레|유선전화|기업전화)", "internal_account": "통신비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(한국전력|한전)", "internal_account": "전력비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(도시가스|상수도|수도사업소)", "internal_account": "수도광열비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(GOOGLE.*ADS|구글.*광고|GoogleAds|메타플랫폼|META|Facebook.*Ads|페이스북.*광고|NAVER.*광고|카카오.*광고|네이버광고|TIKTOK.*ADS)", "internal_account": "광고선전비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(NOTION|Slack|슬랙|Figma|피그마|ZOOM|줌|ADOBE|MS ?OFFICE|Microsoft.*365|Github|GITHUB|OPENAI|ANTHROPIC|CLAUDE\\.AI|VERCEL|AWS|AMAZON ?WEB|GOOGLE ?CLOUD|GCP|AZURE|CLOUDFLARE|DIGITALOCEAN|Jetbrains|JET ?BRAINS|FRAMER\\.COM|LINEAR|ASANA|INTERCOM)", "internal_account": "지급수수료", "priority": 10},
+  {"pattern_type": "description_regex", "pattern": "(구독|정기결제|SaaS|Subscription|SUBSCRIPTION)", "internal_account": "지급수수료", "priority": 30},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(배달의민족|배민|요기요|쿠팡이츠|땡겨요)", "internal_account": "복리후생비", "priority": 10, "amount_max": 50000},
+  {"pattern_type": "counterparty_regex", "pattern": "(배달의민족|배민|요기요|쿠팡이츠|땡겨요)", "internal_account": "접대비", "priority": 9, "amount_min": 50000},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(스타벅스|STARBUCKS|투썸|TWOSOME|이디야|EDIYA|메가커피|컴포즈|빽다방|폴바셋|할리스|HOLLYS|드롭탑|공차|그라찌에|탐앤탐스|커피빈|COFFEE ?BEAN)", "internal_account": "복리후생비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(GS25|CU|세븐일레븐|7-ELEVEN|이마트24|미니스톱|emart24|EMART24|홈플러스익스프레스)", "internal_account": "복리후생비", "priority": 15},
+  {"pattern_type": "counterparty_regex", "pattern": "(맥도날드|롯데리아|버거킹|KFC|맘스터치|서브웨이|SUBWAY|파파이스)", "internal_account": "복리후생비", "priority": 15},
+  {"pattern_type": "counterparty_regex", "pattern": "(분식|식당|냉면|국수|한식|중식|일식|양식|카페|커피|제과|베이커리|피자|치킨|도시락|떡볶이|순대|돈까스|돈가스|김밥|쌈밥|국밥|수제버거)", "internal_account": "복리후생비", "priority": 30},
+  {"pattern_type": "counterparty_regex", "pattern": "(마트|슈퍼|편의점|식품|농협하나로|이마트|홈플러스|롯데마트|노브랜드|트레이더스|코스트코|COSTCO)", "internal_account": "복리후생비", "priority": 40},
+  {"pattern_type": "counterparty_regex", "pattern": "(약국|병원|의원|한의원|내과|외과|치과|안과|피부과|정형외과|이비인후과)", "internal_account": "복리후생비", "priority": 15},
+  {"pattern_type": "counterparty_regex", "pattern": "(대학교|대학|교문|학관|학생식당)", "internal_account": "복리후생비", "priority": 35},
+  {"pattern_type": "counterparty_regex", "pattern": "(김치찌개|된장찌개|순두부|해장국|감자탕|설렁탕|곰탕|칼국수|라면|우동)", "internal_account": "복리후생비", "priority": 25},
+  {"pattern_type": "counterparty_regex", "pattern": "(한국맥도날드|베이커리|핫도그|와플|파이|샌드위치|브런치|토스트)", "internal_account": "복리후생비", "priority": 15},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(카카오T|카카오택시|UBER|우버|타다|TADA|티맵택시|쏘카)", "internal_account": "여비교통비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(코레일|KORAIL|SRT|고속버스|티머니|T-money|후불교통|하이패스|공항철도|KTX|지하철)", "internal_account": "여비교통비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(주유소|GS칼텍스|SK에너지|S-OIL|현대오일뱅크|알뜰주유|오일뱅크|E-1)", "internal_account": "차량유지비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(CJ대한통운|한진택배|롯데택배|우체국택배|로젠택배|쿠팡로지스틱스|한진|우체국)", "internal_account": "운반비", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(교보문고|YES24|알라딘|리디북스|인프런|Udemy|유데미|패스트캠퍼스|클래스101|코드잇)", "internal_account": "교육훈련비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(인쇄|프린트|복사|출력|인쇄소|출력소)", "internal_account": "도서인쇄비", "priority": 20},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(다이소|DAISO|아성다이소|이케아|IKEA|오피스디포|알파문구|모닝글로리|다이소그룹)", "internal_account": "소모품비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(쿠팡|COUPANG|마켓컬리|SSG|지마켓|11번가|옥션|무신사|29CM)", "internal_account": "소모품비", "priority": 40},
+  {"pattern_type": "counterparty_regex", "pattern": "(쿠팡|COUPANG)", "internal_account": "소모품비", "priority": 45, "amount_max": 1000000},
+  {"pattern_type": "counterparty_regex", "pattern": "(쿠팡|COUPANG)", "internal_account": "지급수수료", "priority": 44, "amount_min": 1000000, "description_regex": ""},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(임대료|월세|렌탈|RENTAL|관리비|리스료)", "internal_account": "임차료", "priority": 20},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(국민연금|건강보험|고용보험|산재보험|근로복지공단|국민건강보험공단)", "internal_account": "세금과공과", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(세무서|법원|등기|인지세|지방세|재산세|자동차세|주민세)", "internal_account": "세금과공과", "priority": 10},
+  {"pattern_type": "description_regex", "pattern": "(카드사용알림서비스|서비스이용)", "internal_account": "지급수수료", "priority": 50},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(법무법인|특허|변리사|세무사|회계사|노무사|변호사|법률사무소)", "internal_account": "지급수수료", "priority": 10},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(신한은행|국민은행|우리은행|하나은행|기업은행|IBK|농협|NH|카카오뱅크|토스뱅크|신협|새마을금고)", "internal_account": "지급수수료", "priority": 50},
+  {"pattern_type": "description_regex", "pattern": "(이자|INT|이자수입)", "internal_account": "이자수익", "priority": 15, "direction": "inflow"},
+  {"pattern_type": "description_regex", "pattern": "(대출이자|차입금이자)", "internal_account": "이자비용", "priority": 15, "direction": "outflow"},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(보험|AIA|삼성화재|현대해상|DB손보|메리츠화재|KB손보|한화손해|롯데손해)", "internal_account": "보험료", "priority": 20},
+
+  {"pattern_type": "description_regex", "pattern": "(급여|월급|SALARY|PAYROLL)", "internal_account": "급여", "priority": 15, "direction": "outflow"},
+  {"pattern_type": "description_regex", "pattern": "(상여|BONUS)", "internal_account": "상여금", "priority": 15, "direction": "outflow"},
+  {"pattern_type": "description_regex", "pattern": "(퇴직금|IRP)", "internal_account": "퇴직급여", "priority": 15, "direction": "outflow"},
+
+  {"pattern_type": "description_regex", "pattern": "(회식|식대|점심|저녁)", "internal_account": "복리후생비", "priority": 40, "amount_max": 50000},
+  {"pattern_type": "description_regex", "pattern": "(회식|식대|접대)", "internal_account": "접대비", "priority": 39, "amount_min": 50000},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(국군복지단|국군|군인공제회)", "internal_account": "복리후생비", "priority": 25},
+  {"pattern_type": "counterparty_regex", "pattern": "(한국철도|국철|공항철도)", "internal_account": "여비교통비", "priority": 10},
+  {"pattern_type": "counterparty_regex", "pattern": "(한국도로공사|고속도로|통행료|하이패스)", "internal_account": "차량유지비", "priority": 15},
+
+  {"pattern_type": "counterparty_regex", "pattern": "(옥션|위메프|티몬|카카오스타일|지그재그|에이블리|오늘의집|브랜디)", "internal_account": "소모품비", "priority": 40}
+]

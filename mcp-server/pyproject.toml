@@ -1,0 +1,38 @@
+[project]
+name = "jangbu-mcp"
+version = "0.2.0"
+description = "Local MCP server for korean-jangbu-for skill package"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.0",
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pdf2image>=1.17",
+    "pillow>=10.0",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+# PaddleOCR은 Linux/Windows·Python 3.8~3.12 환경 또는 macOS Vision 미사용 시에만 설치
+paddle = [
+    "paddlepaddle>=2.6",
+    "paddleocr>=2.7",
+]
+# macOS Vision (Python 3.13 포함 모든 버전 OK, 추가 다운로드 없음)
+macos = [
+    "pyobjc-framework-Vision>=10.0",
+    "pyobjc-framework-Quartz>=10.0",
+]
+test = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+jangbu-mcp = "jangbu_mcp.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
