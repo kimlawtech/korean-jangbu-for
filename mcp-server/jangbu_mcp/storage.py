@@ -62,6 +62,19 @@ CREATE TABLE IF NOT EXISTS classification_rules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rule_priority ON classification_rules(priority);
+
+CREATE TABLE IF NOT EXISTS ocr_corrections (
+    correction_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    correction_type    TEXT NOT NULL CHECK(correction_type IN ('counterparty_alias', 'card_last3_alias', 'biz_id_alias')),
+    source_pattern     TEXT NOT NULL,
+    target_value       TEXT NOT NULL,
+    applied_count      INTEGER NOT NULL DEFAULT 0,
+    approved_by        TEXT NOT NULL DEFAULT 'user' CHECK(approved_by IN ('user', 'auto')),
+    created_at         TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(correction_type, source_pattern)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corr_type ON ocr_corrections(correction_type);
 """
 
 TOKENS_SCHEMA = """

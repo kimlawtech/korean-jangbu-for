@@ -114,12 +114,75 @@ ocr_document(
 - OCR 케이스는 `needs_llm_fallback=true` 건 별도 표시
 - 분류되지 않은 항목(matched_account=NULL) 수
 
-### Step 5. 다음 단계 안내
+### Step 5. OCR 보정 제안 리뷰 (카드명세서 후 자동 실행)
+
+`ocr_document(doc_type="card_statement_scan")` 호출 후 또는 일반 OCR 후,
+`ocr_analyze`를 호출해 오인식 패턴을 감지하고 사용자에게 보정 제안.
+
+```python
+ocr_analyze(
+    unparsed_rows=structured.get("unparsed_rows", []),
+    min_similarity=0.82,
+    min_occurrences=2,
+)
+```
+
+응답 예시:
+```json
+{
+  "unparsed_analysis": {
+    "total": 39,
+    "by_token_count": {"5": 28, "6": 8, "7": 3},
+    "missing_column_estimate": {"amount": 32, "biz_id": 4, "merchant": 2}
+  },
+  "counterparty_alias_suggestions": [
+    {"source": "GS 2S", "source_count": 3,
+     "target": "GS25", "target_count": 19, "similarity": 0.89}
+  ],
+  "card_alias_suggestions": [
+    {"source": "card_shinhan_0S9", "source_count": 3,
+     "target": "card_shinhan_039", "target_count": 240}
+  ]
+}
+```
+
+**사용자에게 제시 (각 제안별):**
+```
+OCR 보정 제안 N건:
+
+[1] 가맹점 통합 제안
+    'GS 2S' (3건) → 'GS25' (19건) 로 합치시겠습니까?
+    유사도 0.89
+    [Y] 예, 적용 / [N] 아니오, 그대로 / [S] 모두 건너뛰기
+
+[2] 카드 식별자 통합
+    'card_shinhan_0S9' (3건) → 'card_shinhan_039' (240건)
+    [Y/N/S]
+
+[3] Unparsed 분석
+    39건 중 32건이 금액 누락 패턴입니다.
+    원본 PDF 재확인 권장 또는 수동 보정 필요.
+```
+
+**사용자 승인 시:**
+```python
+ocr_apply_alias(
+    correction_type="counterparty_alias",
+    source="GS 2S",
+    target="GS25",
+)
+# → 기존 거래 counterparty 일괄 갱신
+# → ocr_corrections 테이블에 영구 저장
+# → 다음 OCR부터 자동 적용
+```
+
+### Step 6. 다음 단계 안내
 
 ```
 표준화 완료:
 - 파싱: N건
 - 등록: M건 (중복 K건 제외)
+- 보정 적용: X건 (alias 통합)
 - 분류 미완료: P건
 
 다음:

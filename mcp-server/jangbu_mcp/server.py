@@ -33,7 +33,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from jangbu_mcp import audit, credentials, masking, ocr, parsers, reports, rules, storage
+from jangbu_mcp import audit, credentials, masking, ocr, ocr_corrections, parsers, reports, rules, storage
 from jangbu_mcp.connectors import codef as codef_conn
 
 app = Server("jangbu-mcp")
@@ -230,6 +230,49 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="ocr_analyze",
+            description="OCR 파싱 후 unparsed 패턴 분석 + 가맹점·카드 식별자 alias 제안. Level 2 준수 — 거래 내역 금액·사업자번호 등은 요약에 포함 안함. 결과를 사용자에게 보여주고 동의 시 ocr_apply_alias로 적용.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "unparsed_rows": {
+                        "type": "array",
+                        "items": {"type": "array", "items": {"type": "string"}},
+                        "description": "(선택) structure_card_statement 결과의 unparsed_rows. 없으면 unparsed 분석 생략.",
+                    },
+                    "min_similarity": {"type": "number", "default": 0.82, "description": "가맹점 유사도 임계 (0~1)"},
+                    "min_occurrences": {"type": "integer", "default": 2, "description": "최소 발생 건수"},
+                },
+            },
+        ),
+        Tool(
+            name="ocr_apply_alias",
+            description="사용자가 승인한 alias 저장 + 기존 거래내역 일괄 갱신. correction_type=counterparty_alias / card_last3_alias / biz_id_alias.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "correction_type": {
+                        "type": "string",
+                        "enum": ["counterparty_alias", "card_last3_alias", "biz_id_alias"],
+                    },
+                    "source": {"type": "string", "description": "오인식된 원본 값"},
+                    "target": {"type": "string", "description": "정규형 값"},
+                    "approved_by": {"type": "string", "enum": ["user", "auto"], "default": "user"},
+                },
+                "required": ["correction_type", "source", "target"],
+            },
+        ),
+        Tool(
+            name="ocr_list_corrections",
+            description="저장된 OCR 보정 alias 목록 조회.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "correction_type": {"type": "string"},
+                },
+            },
+        ),
+        Tool(
             name="get_audit_log",
             description="감사 로그 조회. append-only.",
             inputSchema={
@@ -270,6 +313,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return await _codef_fetch_bank(arguments)
     if name == "codef_fetch_card":
         return await _codef_fetch_card(arguments)
+    if name == "ocr_analyze":
+        return await _ocr_analyze(arguments)
+    if name == "ocr_apply_alias":
+        return await _ocr_apply_alias(arguments)
+    if name == "ocr_list_corrections":
+        return await _ocr_list_corrections(arguments)
     if name == "get_audit_log":
         return await _get_audit_log(arguments)
     raise ValueError(f"unknown tool: {name}")
@@ -723,6 +772,46 @@ def _summarize_codef_result(result: dict) -> dict:
             elif isinstance(v, str) and len(v) < 100:
                 out[k] = v
     return out
+
+
+async def _ocr_analyze(args: dict) -> list[TextContent]:
+    unparsed = args.get("unparsed_rows") or []
+    min_sim = args.get("min_similarity", 0.82)
+    min_occ = args.get("min_occurrences", 2)
+
+    analysis = ocr_corrections.analyze_unparsed(unparsed)
+    cp = ocr_corrections.suggest_counterparty_aliases(min_similarity=min_sim, min_occurrences=min_occ)
+    card = ocr_corrections.suggest_card_last3_aliases(min_occurrences=min_occ)
+
+    result = ocr_corrections.summarize_for_llm(analysis, cp, card)
+    audit.log(
+        tool_name="ocr_analyze",
+        caller="claude",
+        masked=True,
+        purpose=f"analyze unparsed={analysis['total']}, cp_sug={len(cp)}, card_sug={len(card)}",
+    )
+    return _content(result)
+
+
+async def _ocr_apply_alias(args: dict) -> list[TextContent]:
+    res = ocr_corrections.apply_alias(
+        correction_type=args["correction_type"],
+        source=args["source"],
+        target=args["target"],
+        approved_by=args.get("approved_by", "user"),
+    )
+    audit.log(
+        tool_name="ocr_apply_alias",
+        caller="claude",
+        masked=True,
+        purpose=f"apply alias {args['correction_type']}: → {res['updated_transactions']} rows",
+    )
+    return _content(res)
+
+
+async def _ocr_list_corrections(args: dict) -> list[TextContent]:
+    corrections = ocr_corrections.list_corrections(args.get("correction_type"))
+    return _content(corrections)
 
 
 async def _get_audit_log(args: dict) -> list[TextContent]:
