@@ -10,6 +10,8 @@ dependencies = [
     "pdf2image>=1.17",
     "pillow>=10.0",
     "pydantic>=2.6",
+    "keyring>=24.0",
+    "cryptography>=42.0",
 ]
 
 [project.optional-dependencies]

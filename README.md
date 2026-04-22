@@ -25,16 +25,33 @@
 
 ## 스킬 구성
 
-진입점 1개 + 하위 스킬 5개 + MCP 서버 1개.
+진입점 1개 + 하위 스킬 6개 + MCP 서버 1개.
 
 | 스킬 | 호출 | 용도 |
 |------|------|------|
-| `korean-jangbu-for` | 진입점 | 번호 메뉴 라우팅 |
+| `korean-jangbu-for` | 진입점 | 번호·문자 메뉴 라우팅 |
+| `jangbu-connect` | 직행 | CODEF API 자격증명 설정 (BYOK) — 홈택스·은행·카드 자동 수집용 |
 | `jangbu-import` | 직행 | 원본 데이터(엑셀·CSV·이미지·PDF) → 표준 거래내역 |
-| `jangbu-tag` | 직행 | 표준 거래내역 → 계정과목 매핑 (룰 우선 + LLM fallback) |
+| `jangbu-tag` | 직행 | 표준 거래내역 → 계정과목 매핑 (룰 + 학습 + LLM) |
 | `jangbu-tax` | 직행 | 세무용 BS·PL (국세청 표준계정) |
-| `jangbu-dash` | 직행 | 경영용 현금흐름·비용구조·월별 손익 |
-| `jangbu-jongso` | 직행 | 종소세·법인세 신고 전 준비 서류 체크리스트 |
+| `jangbu-dash` | 직행 | 경영용 현금흐름·대시보드·카드별 분석 |
+| `jangbu-jongso` | 직행 | 종소세 체크리스트 + 홈택스 다운로드 경로 상세 안내 |
+
+## 자동 수집 (BYOK — 사용자 본인 CODEF 키)
+
+사용자가 직접 [CODEF developer.codef.io](https://developer.codef.io)에 무료 가입해 받은 Client ID/Secret을 로컬에 저장하고, 본인 계정으로 홈택스·은행·카드사 데이터를 자동 수집합니다.
+
+- **자격증명은 macOS Keychain 또는 `~/.jangbu/credentials.env`(0o600)에만 저장**
+- **외부 서버 전송 없음**
+- **개인 개발자 샌드박스 월 1,000건 무료**
+- 설정: `/korean-jangbu-for` → `[S]` → `/jangbu-connect`
+- 실행: `/korean-jangbu-for` → `[F]` → 카카오/PASS 간편인증 → 자동 적재
+
+지원 범위:
+- **홈택스**: 소득금액증명·납세증명·사업자등록·부가세과세표준 증명
+- **은행**: KB·신한·우리·하나·IBK·NH·카카오뱅크·토스뱅크 거래내역
+- **카드**: 신한·KB·삼성·현대·롯데·BC·우리·하나·NH 이용내역
+- **향후 확장**: 건강보험·국민연금·고용산재·증권 매매내역
 
 ```
 /korean-jangbu-for      → 1·2·3·4·M·Q·T·X·C·A 번호·문자 메뉴

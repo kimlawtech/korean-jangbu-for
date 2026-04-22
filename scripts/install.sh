@@ -9,7 +9,7 @@ set -euo pipefail
 # 5. Claude Code 스킬 심볼릭 링크
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKILLS=(korean-jangbu-for jangbu-import jangbu-tag jangbu-tax jangbu-dash jangbu-jongso)
+SKILLS=(korean-jangbu-for jangbu-connect jangbu-import jangbu-tag jangbu-tax jangbu-dash jangbu-jongso)
 
 echo "━━━ korean-jangbu-for 설치 ━━━"
 echo ""
