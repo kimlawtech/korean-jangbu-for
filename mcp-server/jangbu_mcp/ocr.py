@@ -347,23 +347,25 @@ def _detect_card_issuer(full_text: str) -> str:
 # 카드 last3: OCR 오인식 허용 (g/q→9, o/O→0, l/I→1, B→8)
 # 이용카드 식별 패턴 (발급사별)
 # 각 패턴은 (전체 매칭, 카드 식별 숫자) 2 그룹을 캡처
+# 숫자 자리에 OCR 오인식 문자(S/O/g/l/I/B/D/q/Q/|·서·공백 등) 허용
+_CARD_ID_CHAR = r"[\d서oOqQgGlIBSsDd\|]"
 _CARD_MARKERS: dict[str, re.Pattern] = {
-    # 신한카드: "본인 039 / 복수 122"
-    "shinhan": re.compile(r"(본인|복수|가족)\s*0?([\d서oOqQgGlIB]{3})"),
-    # KB국민카드: "KB국민 9012" 또는 카드번호 일부 "****-****-****-9012"
-    "kb": re.compile(r"(?:KB국민|국민)\s*\**-?\**\-?\**-?(\d{3,4})"),
-    # 삼성카드: "삼성카드 1234" 또는 카드별명 + 4자리
-    "samsung": re.compile(r"(?:삼성카드|SAMSUNG)\s*\**-?\**-?\**-?(\d{3,4})"),
+    # 신한카드: "본인 039 / 복수 122 / 가족 200"
+    "shinhan": re.compile(rf"(본인|복수|가족)\s*0?({_CARD_ID_CHAR}{{3}})"),
+    # KB국민카드: "KB국민 9012" 또는 "국민 9012"
+    "kb": re.compile(rf"(?:KB국민|국민|KB|kb국민|kb)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})", re.IGNORECASE),
+    # 삼성카드
+    "samsung": re.compile(rf"(?:삼성카드|SAMSUNG|삼성)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})", re.IGNORECASE),
     # 현대카드: "현대카드 1234", "현대카드 M 1234", "현대 M 1234"
-    "hyundai": re.compile(r"(?:현대카드|현대)\s*(?:[MXmx]\s+)?\**-?\**-?\**-?(\d{3,4})"),
-    # 롯데카드: "롯데 1234"
-    "lotte": re.compile(r"(?:롯데카드|롯데)\s*\**-?\**-?\**-?(\d{3,4})"),
-    # BC(비씨)카드: "BC 1234"
-    "bc": re.compile(r"(?:BC카드|BC|비씨카드|비씨)\s*\**-?\**-?\**-?(\d{3,4})"),
+    "hyundai": re.compile(rf"(?:현대카드|현대)\s*(?:[MXmx]\s+)?\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})"),
+    # 롯데카드
+    "lotte": re.compile(rf"(?:롯데카드|롯데\s*카드|롯데)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})"),
+    # BC(비씨)카드
+    "bc": re.compile(rf"(?:BC카드|BC|비씨카드|비씨|bc카드|bc)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})", re.IGNORECASE),
     # 우리카드
-    "woori": re.compile(r"(?:우리카드|우리)\s*\**-?\**-?\**-?(\d{3,4})"),
+    "woori": re.compile(rf"(?:우리카드|우리)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})"),
     # 하나카드
-    "hana": re.compile(r"(?:하나카드|하나)\s*\**-?\**-?\**-?(\d{3,4})"),
+    "hana": re.compile(rf"(?:하나카드|하나)\s*\**-?\**-?\**-?({_CARD_ID_CHAR}{{3,4}})"),
 }
 
 # 범용 카드번호 끝자리 패턴 (발급사 감지 실패 시 fallback)
@@ -376,20 +378,36 @@ _PRODUCT_KEYWORDS = (
 
 
 def _fix_card_last3(raw: str) -> str:
-    """OCR 오인식 숫자 치환."""
+    """OCR 오인식 숫자 치환. 문자 → 숫자 매핑.
+
+    자주 나오는 오인식:
+      0 ↔ O, o, D (가끔)
+      1 ↔ l, I, |
+      5 ↔ S, s
+      8 ↔ B
+      9 ↔ g, G, q, Q, 서 (신한 폰트)
+    """
     t = (
-        raw.replace("o", "0").replace("O", "0")
+        raw.replace("o", "0").replace("O", "0").replace("D", "0")
            .replace("q", "9").replace("Q", "9")
            .replace("g", "9").replace("G", "9")
-           .replace("l", "1").replace("I", "1")
-           .replace("B", "8").replace("서", "9")  # 서→9 오인식 (신한카드에서 관찰)
+           .replace("l", "1").replace("I", "1").replace("|", "1")
+           .replace("B", "8")
+           .replace("S", "5").replace("s", "5")
+           .replace("서", "9")
     )
     return t
 
 
 def _fix_ocr_amount(raw: str) -> str:
-    """금액 내 오인식 복구. 'S'→5, 'B'→8 등 가능한 것만 보정."""
-    return raw.replace("O", "0").replace("o", "0").replace("S", "5").replace("l", "1")
+    """금액 내 오인식 복구. 쉼표 안쪽의 문자도 치환."""
+    return (
+        raw.replace("O", "0").replace("o", "0")
+           .replace("S", "5").replace("s", "5")
+           .replace("l", "1").replace("I", "1").replace("|", "1")
+           .replace("B", "8")
+           .replace("D", "0")
+    )
 
 
 def _find_card_marker(flat: str, issuer: str) -> tuple[int, int, str] | None:
@@ -482,14 +500,18 @@ def _parse_card_row_generic(tokens: list[str], issuer: str = "generic") -> dict 
             product_name = kw
 
     # 4) 금액 — 상품 키워드 직전의 쉼표 숫자 또는 1~7자리
+    #    먼저 search_region에서 금액 위치만 찾고, 매칭된 텍스트는 OCR 보정 후 파싱
     search_region = after_card[:product_idx] if product_idx >= 0 else after_card
-    amount_matches = list(re.finditer(r"(-?[0-9]{1,3}(?:,[0-9]{3})+|-?[0-9]{1,7})", search_region))
+    # OCR 보정 후 재탐색 (23,OOO → 23,000)
+    fixed_region = _fix_ocr_amount(search_region)
+    amount_matches = list(re.finditer(r"(-?[0-9]{1,3}(?:,[0-9]{3})+|-?[0-9]{1,7})", fixed_region))
     if not amount_matches:
         return None
     last = amount_matches[-1]
     amount = _parse_amount(last.group(1))
     if amount is None:
         return None
+    # 가맹점 추출은 원본(비보정) 기준이어야 한글 훼손 안됨
     merchant = search_region[:last.start()].strip()
 
     # 가맹점이 빈 문자열이거나 너무 짧으면 실패 처리 (노이즈 행 차단)
@@ -651,6 +673,22 @@ def structure_card_statement(ocr: OcrResult) -> dict:
         else:
             unparsed_rows.append(row_tokens)
 
+    # 학습된 alias 자동 적용 (사용자가 이전에 승인한 통합 규칙)
+    try:
+        from jangbu_mcp import ocr_corrections
+        cp_alias = ocr_corrections.load_alias_map("counterparty_alias")
+        card_alias = ocr_corrections.load_alias_map("card_last3_alias")
+        alias_applied = {"counterparty": 0, "card_last3": 0}
+        for r in parsed_rows:
+            if r.get("merchant") and r["merchant"] in cp_alias:
+                r["merchant"] = cp_alias[r["merchant"]]
+                alias_applied["counterparty"] += 1
+            if r.get("card_last3") and r["card_last3"] in card_alias:
+                r["card_last3"] = card_alias[r["card_last3"]]
+                alias_applied["card_last3"] += 1
+    except Exception:
+        alias_applied = {"counterparty": 0, "card_last3": 0}
+
     # 카드별 건수·총액 집계 (카드 여러 장 분석용)
     card_stats: dict[str, dict] = {}
     for r in parsed_rows:
@@ -680,6 +718,7 @@ def structure_card_statement(ocr: OcrResult) -> dict:
         "unparsed_rows": unparsed_rows,
         "parse_rate": round(parse_rate, 3),
         "needs_llm_fallback": parse_rate < 0.5,
+        "alias_applied": alias_applied,
         "raw_text": full_text,
     }
 

@@ -105,6 +105,13 @@ def get_access_token(client: CodefClient, force: bool = False) -> str:
             body = json.loads(r.read())
     except urllib.error.HTTPError as e:
         raise CodefError(f"CODEF OAuth 실패 ({e.code}): {e.read().decode('utf-8', 'replace')}") from e
+    except urllib.error.URLError as e:
+        raise CodefError(
+            f"CODEF OAuth 네트워크 오류: {e.reason}. "
+            "샌드박스 도메인(sandbox.codef.io) 접근 가능한지 확인하세요."
+        ) from e
+    except Exception as e:
+        raise CodefError(f"CODEF OAuth 알 수 없는 오류: {type(e).__name__}: {e}") from e
 
     token = body.get("access_token")
     if not token:
@@ -171,6 +178,10 @@ def call_api(path: str, body: dict, client: Optional[CodefClient] = None,
             raw = r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         raise CodefError(f"CODEF API {path} 실패 ({e.code}): {e.read().decode('utf-8', 'replace')}") from e
+    except urllib.error.URLError as e:
+        raise CodefError(f"CODEF API 네트워크 오류 ({path}): {e.reason}") from e
+    except Exception as e:
+        raise CodefError(f"CODEF API 알 수 없는 오류 ({path}): {type(e).__name__}: {e}") from e
 
     # 응답도 URL-decoded JSON
     decoded = urllib.parse.unquote(raw)

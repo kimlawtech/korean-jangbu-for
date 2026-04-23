@@ -117,3 +117,54 @@ def test_card_parsers_registry_dispatch():
     r = ocr._parse_card_row(tokens, issuer="shinhan")
     assert r is not None
     assert r["card_last3"] == "100"
+
+
+# ---- 노이즈 회복력 (실전 OCR 오인식 시뮬레이션) ----
+
+def test_noisy_kb_card_digit_l_as_1():
+    tokens = ["2025.02.15", "2025.03.15", "KB국민 90l2", "테스트마트", "45,000", "일시불", "3333333333"]
+    r = ocr._parse_card_row_generic(tokens, issuer="kb")
+    assert r is not None
+    assert r["card_last3"] == "9012"
+
+
+def test_noisy_samsung_S_as_5():
+    tokens = ["2025.02.20", "2025.03.10", "삼성카드 S678", "카페", "5,500", "일시불", "4444444444"]
+    r = ocr._parse_card_row_generic(tokens, issuer="samsung")
+    assert r is not None
+    assert r["card_last3"] == "5678"
+
+
+def test_noisy_hyundai_amount_O_as_0():
+    tokens = ["2025.02.22", "2025.03.14", "현대카드 M 5678", "서점", "23,OOO", "일시불", "5555555555"]
+    r = ocr._parse_card_row_generic(tokens, issuer="hyundai")
+    assert r is not None
+    assert r["amount"] == "23000"
+
+
+def test_noisy_lotte_card_with_space():
+    tokens = ["2025.03.01", "2025.04.14", "롯데 카드 7890", "마트", "89,000", "일시불", "6666666666"]
+    r = ocr._parse_card_row_generic(tokens, issuer="lotte")
+    assert r is not None
+    assert r["card_last3"] == "7890"
+
+
+def test_noisy_bc_lowercase():
+    tokens = ["2025.03.03", "2025.04.14", "bc카드 3456", "편의점", "4,200", "체크", "7777777777"]
+    r = ocr._parse_card_row_generic(tokens, issuer="bc")
+    assert r is not None
+    assert r["card_last3"] == "3456"
+
+
+def test_noisy_hana_double_g_as_9():
+    tokens = ["2025.03.15", "2025.04.14", "하나카드 9gg9", "서점", "28,000", "일시불", "9090909090"]
+    r = ocr._parse_card_row_generic(tokens, issuer="hana")
+    assert r is not None
+    assert r["card_last3"] == "9999"
+
+
+def test_noisy_woori_double_S_as_5():
+    tokens = ["2025.03.10", "2025.04.14", "우리카드 5SS5", "카페", "4,800", "일시불", "8080808080"]
+    r = ocr._parse_card_row_generic(tokens, issuer="woori")
+    assert r is not None
+    assert r["card_last3"] == "5555"

@@ -100,12 +100,16 @@ def classify(transaction: dict) -> tuple[str | None, float]:
         if r["direction"] and r["direction"] != direction:
             continue
 
-        if pt == "counterparty_exact" and counterparty == pat:
-            return acct, 1.00
-        if pt == "counterparty_regex" and re.search(pat, counterparty):
-            return acct, 0.90
-        if pt == "description_regex" and re.search(pat, description):
-            return acct, 0.80
+        try:
+            if pt == "counterparty_exact" and counterparty == pat:
+                return acct, 1.00
+            if pt == "counterparty_regex" and re.search(pat, counterparty):
+                return acct, 0.90
+            if pt == "description_regex" and re.search(pat, description):
+                return acct, 0.80
+        except re.error:
+            # 잘못된 정규식 룰은 스킵하고 다음으로
+            continue
 
     return None, 0.00
 

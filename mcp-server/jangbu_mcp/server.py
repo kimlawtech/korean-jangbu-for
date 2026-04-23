@@ -868,7 +868,7 @@ async def _ingest_folder(args: dict) -> list[TextContent]:
         "inserted_total": 0,
     }
 
-    # 이미지: 영수증 또는 지정 doc_type으로 OCR
+    # 이미지: doc_type_hint 따라 구조화 함수 분기
     doc_type = hint if hint != "auto" else "receipt"
     for img_path in scanned["image"]:
         try:
@@ -878,6 +878,18 @@ async def _ingest_folder(args: dict) -> list[TextContent]:
                 tx = ocr.receipt_to_transaction(structured, f"{prefix}_ocr")
                 if tx:
                     n = _insert_transactions([tx])
+                    result["inserted_total"] += n
+            elif doc_type == "tax_invoice":
+                structured = ocr.structure_tax_invoice(ocr_res)
+                tx = ocr.tax_invoice_to_transaction(structured) if hasattr(ocr, "tax_invoice_to_transaction") else None
+                if tx:
+                    n = _insert_transactions([tx])
+                    result["inserted_total"] += n
+            elif doc_type == "card_statement_scan":
+                structured = ocr.structure_card_statement(ocr_res)
+                if structured.get("row_count", 0) > 0:
+                    txs = ocr.card_statement_to_transactions(structured, f"{prefix}_card")
+                    n = _insert_transactions(txs)
                     result["inserted_total"] += n
             result["processed"]["image"] += 1
         except Exception as e:
